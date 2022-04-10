@@ -9,6 +9,7 @@ $ docker run -it -p 8050:8050 scrapinghub/splash --disable-private-mode
 ```
 
 ## Ferramentas Utilizadas:
-- [scrapy](https://github.com/scrapy/scrapy)
-- [selenium](https://github.com/SeleniumHQ/selenium)
-- [scrapy-splash](https://github.com/scrapy-plugins/scrapy-splash)
+- python 3.9.6
+- scrapy
+- selenium
+- scrapy-splash
