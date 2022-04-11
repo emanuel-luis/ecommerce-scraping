@@ -33,7 +33,7 @@ class LeviSpider(Base):
     name = 'levi'
     allowed_domains = ['levi.com.br']
     start_urls = get_start_urls(BASE_URL, PATH)
-    custom_settings = get_custom_settings(name, log_level='DEBUG')
+    custom_settings = get_custom_settings(name)
     xlink = LinkExtractor(restrict_xpaths=LINK_SELECTOR)
 
     def parse(self, response: HtmlResponse):

@@ -30,7 +30,7 @@ SELECTORS = get_selectors(ATTRIBUTES, globals())
 
 class AfabulaSpider(Base):
     name = 'afabula'
-    start_urls = get_start_urls(BASE_URL, PATHS)[::-1]
+    start_urls = get_start_urls(BASE_URL, PATHS)
     allowed_domains = ['afabula.com.br']
     custom_settings = get_custom_settings(name)
     xlink = LinkExtractor(restrict_xpaths=LINK_SELECTOR)
@@ -42,6 +42,7 @@ class AfabulaSpider(Base):
             _description = _description.replace('  ', ' ').strip()
 
         description = _description
+        name = response.xpath(NAME_SELECTOR).extract_first(EMPTY) or description.split('.')[0]
         yield {
             **get_attributes(ATTRIBUTES, SELECTORS, response),
             'description': description

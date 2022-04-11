@@ -13,12 +13,12 @@ from shutil import which
 
 BOT_NAME = 'ecommerce'
 LOG_LEVEL = 'INFO'
-SPIDER_MODULES = ['ecommerce.spiders']
+SPIDER_MODULES = ['ecommerce.ecommerce.spiders']
 SPLASH_URL = 'http://localhost:8050'
 
 RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524, 408, 429, 400]
 RETRY_TIMES = 10
-NEWSPIDER_MODULE = 'ecommerce.spiders'
+NEWSPIDER_MODULE = 'ecommerce.ecommerce.spiders'
 DOWNLOADER_MIDDLEWARES = {
     'scrapy_splash.SplashCookiesMiddleware': 723,
     'scrapy_splash.SplashMiddleware': 725,
@@ -47,7 +47,7 @@ SELENIUM_DRIVER_ARGUMENTS = [
 ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-CONCURRENT_REQUESTS = 32
+CONCURRENT_REQUESTS = 16
 
 # Configure a delay for requests for the same website (default: 0)
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
@@ -109,7 +109,7 @@ COOKIES_ENABLED = False
 # Enable and configure HTTP caching (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
 #HTTPCACHE_ENABLED = True
-HTTPCACHE_EXPIRATION_SECS = 30
+# HTTPCACHE_EXPIRATION_SECS = 0
 #HTTPCACHE_DIR = 'httpcache'
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
