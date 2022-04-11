@@ -1,6 +1,6 @@
 from shutil import which
 
-# Scrapy settings for src project
+# Scrapy settings for ecommerce project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -11,14 +11,14 @@ from shutil import which
 
 
 
-BOT_NAME = 'src'
+BOT_NAME = 'ecommerce'
 LOG_LEVEL = 'INFO'
-SPIDER_MODULES = ['src.spiders']
+SPIDER_MODULES = ['ecommerce.spiders']
 SPLASH_URL = 'http://localhost:8050'
 
 RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524, 408, 429, 400]
 RETRY_TIMES = 10
-NEWSPIDER_MODULE = 'src.spiders'
+NEWSPIDER_MODULE = 'ecommerce.spiders'
 DOWNLOADER_MIDDLEWARES = {
     'scrapy_splash.SplashCookiesMiddleware': 723,
     'scrapy_splash.SplashMiddleware': 725,
@@ -41,7 +41,7 @@ SELENIUM_DRIVER_ARGUMENTS = [
 ]
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = 'src (+http://www.yourdomain.com)'
+#USER_AGENT = 'ecommerce (+http://www.yourdomain.com)'
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = False
@@ -72,13 +72,13 @@ COOKIES_ENABLED = False
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 # SPIDER_MIDDLEWARES = {
-#    'src.middlewares.ScrapyLojasSpiderMiddleware': 543,
+#    'ecommerce.middlewares.ScrapyLojasSpiderMiddleware': 543,
 # }
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 # DOWNLOADER_MIDDLEWARES = {
-#    'src.middlewares.ScrapyLojasDownloaderMiddleware': 543,
+#    'ecommerce.middlewares.ScrapyLojasDownloaderMiddleware': 543,
 # }
 
 # Enable or disable extensions
@@ -90,7 +90,7 @@ COOKIES_ENABLED = False
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 # ITEM_PIPELINES = {
-#    'src.pipelines.ScrapyLojasPipeline': 300,
+#    'ecommerce.pipelines.ScrapyLojasPipeline': 300,
 # }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
@@ -109,7 +109,7 @@ COOKIES_ENABLED = False
 # Enable and configure HTTP caching (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
 #HTTPCACHE_ENABLED = True
-#HTTPCACHE_EXPIRATION_SECS = 0
+HTTPCACHE_EXPIRATION_SECS = 30
 #HTTPCACHE_DIR = 'httpcache'
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
