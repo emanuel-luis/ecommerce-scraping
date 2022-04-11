@@ -1,14 +1,14 @@
 from operator import add
 from threading import Thread
-from typing import Any, Iterable
+from typing import Any, Iterable, Union
 from scrapy.http import HtmlResponse
 from datetime import datetime
 import re
 
 try:
-    from ecommerce.src.settings import LOG_LEVEL
+    from ecommerce.ecommerce.settings import LOG_LEVEL
 except ModuleNotFoundError:
-    from src.settings import LOG_LEVEL
+    from ecommerce.settings import LOG_LEVEL
 
 EMPTY = str()
 
@@ -48,7 +48,7 @@ def get_selectors(attrs: Iterable[str], globals: dict[str, Any]):
 
 def get_attributes(attrs: Iterable[str], selectors: Iterable[str],
                    response: HtmlResponse, *,
-                   default=EMPTY) -> dict[str, str | None]:
+                   default=EMPTY) -> dict[str, Union[str, None]]:
     def get_attribute(selector: str):
         value: str = response.xpath(selector).extract_first(default)
         value = re.sub(r'[\n\t]', ' ', value).strip()

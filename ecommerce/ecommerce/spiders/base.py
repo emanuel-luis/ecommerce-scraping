@@ -1,4 +1,4 @@
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Union
 from scrapy.http import HtmlResponse
 from scrapy_splash import SplashRequest
 from scrapy.linkextractors import LinkExtractor
@@ -8,7 +8,7 @@ import scrapy
 class BaseSpider(scrapy.Spider):
     name: str
     start_urls: Iterable[str]
-    custom_settings: dict[str, str | dict]
+    custom_settings: dict[str, Union[str, dict]]
     xlink: LinkExtractor
     next_page: tuple[Callable, str]
 
