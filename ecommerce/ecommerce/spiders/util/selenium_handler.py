@@ -7,11 +7,11 @@ from scrapy.http import HtmlResponse
 from time import sleep as wait
 
 try:
-    from ecommerce.src.settings import (SELENIUM_DRIVER_EXECUTABLE_PATH,
+    from ecommerce.ecommerce.settings import (SELENIUM_DRIVER_EXECUTABLE_PATH,
                                         SELENIUM_DRIVER_ARGUMENTS,
                                         SELENIUM_DRIVER_NAME)
 except ModuleNotFoundError:
-    from src.settings import (SELENIUM_DRIVER_EXECUTABLE_PATH,
+    from ecommerce.settings import (SELENIUM_DRIVER_EXECUTABLE_PATH,
                               SELENIUM_DRIVER_ARGUMENTS,
                               SELENIUM_DRIVER_NAME)
 
