@@ -34,7 +34,7 @@ class AfabulaSpider(Base):
     allowed_domains = ['afabula.com.br']
     custom_settings = get_custom_settings(name)
     xlink = LinkExtractor(restrict_xpaths=LINK_SELECTOR)
- 
+
     def parse(self, response: HtmlResponse):
         _description = response.xpath(DESCRIPTION_SELECTOR).extract()
         _description = ' '.join(_description).strip()
@@ -42,11 +42,8 @@ class AfabulaSpider(Base):
             _description = _description.replace('  ', ' ').strip()
 
         description = _description
-        name = response.xpath(NAME_SELECTOR).extract_first(EMPTY)
-        if description and not name:
-            name = description.split('.')[0]
+
         yield {
             **get_attributes(ATTRIBUTES, SELECTORS, response),
             'description': description,
-            'name': name
         }
