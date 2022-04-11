@@ -42,8 +42,11 @@ class AfabulaSpider(Base):
             _description = _description.replace('  ', ' ').strip()
 
         description = _description
-        name = response.xpath(NAME_SELECTOR).extract_first(EMPTY) or description.split('.')[0]
+        name = response.xpath(NAME_SELECTOR).extract_first(EMPTY)
+        if description and not name:
+            name = description.split('.')[0]
         yield {
             **get_attributes(ATTRIBUTES, SELECTORS, response),
-            'description': description
+            'description': description,
+            'name': name
         }
