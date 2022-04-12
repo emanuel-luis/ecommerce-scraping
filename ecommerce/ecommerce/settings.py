@@ -17,7 +17,7 @@ SPIDER_MODULES = ['ecommerce.ecommerce.spiders']
 SPLASH_URL = 'http://localhost:8050'
 
 RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524, 408, 429, 400]
-RETRY_TIMES = 10
+RETRY_TIMES = 5
 NEWSPIDER_MODULE = 'ecommerce.ecommerce.spiders'
 DOWNLOADER_MIDDLEWARES = {
     'scrapy_splash.SplashCookiesMiddleware': 723,
