@@ -75,7 +75,7 @@ class LupoSpider(Base):
             pattern = r'[A-zà-ÿ]+ \d+[,\.]?\d*?%'
             composition, _sum = get_composition(pattern)
 
-        age, *_ = re.findall(r'\((\w+)\)', _name)
+        age, *_ = re.findall(r'\((\w+)\)', _name) or ['Indefinido']
         name = re.sub(rf'\({age}\)', EMPTY, _name).strip()
         if name.endswith('-'):
             name = name.replace('-', '').strip()

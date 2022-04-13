@@ -38,7 +38,7 @@ class LeviSpider(Base):
 
     def parse(self, response: HtmlResponse):
         extracted: str = response.xpath(NAME_SELECTOR).extract_first(EMPTY)
-        category, *_ = extracted.split()
+        category, *_ = extracted.split() or ['Indefinido']
 
         yield {
             **get_attributes(ATTRIBUTES, SELECTORS, response),
