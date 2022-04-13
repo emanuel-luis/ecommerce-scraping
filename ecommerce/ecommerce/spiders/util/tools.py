@@ -17,11 +17,11 @@ def get_custom_settings(name: str, *, log_level=LOG_LEVEL) -> dict[str, dict]:
     return {
         'LOG_LEVEL': log_level,
         'FEEDS': {
-            f'./products/{name}.csv': {
+            f'./products/csv/{name}.csv': {
                 'format': 'csv',
                 'encoding': 'utf-8',
             },
-            f'./products/{name}.json': {
+            f'./products/json/{name}.json': {
                 'format': 'json',
                 'encoding': 'utf-8',
             }
