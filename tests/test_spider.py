@@ -49,6 +49,7 @@ def test_urlset_keeps_only_product_urls() -> None:
         "/blocked-product/p",
         "/missing-product/p",
         "/no-jsonld-product/p",
+        "/FIXTURE-PRODUCT/p",
         "/old-fixture-product/p",
     ]
 
