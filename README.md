@@ -23,7 +23,7 @@ is small by default (20 products per store) and goes one request at a time per s
   files.
 - Data contracts and quality checks at each boundary: pydantic models, checksum verification,
   rejects stored with their stage and reason, deduplication by product key, and a per-store
-  check that pages in equal rows out plus rejects.
+  reconciliation of the raw manifest against the crawl's page count.
 - Run metadata: `run_id`, UTC timestamps, pages archived, robots.txt refusals, HTTP errors,
   retries, rows out, rejects and duplicates per store, queryable in the `runs` view.
 - Responsible crawling: robots.txt obeyed, an identifying User-Agent, AutoThrottle, a stop on
@@ -63,6 +63,7 @@ transform reads, and it keeps out the customer names some stores put in their re
 - A 403 or 429 (robots.txt included) stops that store's crawl for the run. 429 is not retried.
 - Runs are capped: 20 product pages per store by default, 5 in `make demo`, 10 in Docker
   Compose. A full catalog crawl needs an explicit `--no-limit`.
+  Even then each store stops after one hour (about 1,200 pages); the run ends `partial` with the finish reason `closespider_timeout`.
 
 The 2022 version crawled eleven stores. A check of each site's robots.txt and current pages in
 October 2026 kept three; [docs/DECISIONS.md](docs/DECISIONS.md) records why each of the
@@ -130,7 +131,7 @@ yields no rows at all. A run where some store yields nothing (for example a stor
 | raw → processed | page has a JSON-LD `Product` with a price | reject, stage `parse` |
 | raw → processed | `ProductSnapshot` contract: name present, price ≥ 0 with 2 decimals, high price ≥ price, ISO currency, schema.org availability | reject, stage `validate` |
 | raw → processed | one row per product key (the lowercased URL path) per store and run | reject, stage `duplicate` |
-| raw → processed | pages = rows + rejects + duplicates, per store | the step fails |
+| raw → processed | manifest lines = pages archived by the crawl, per store; every page becomes a row, a reject or a duplicate | the step fails |
 
 Prices are stored as published, in BRL. When a product has several variants, `price` is the
 lowest offer and `high_price` the highest; `in_stock` is true when any variant is in stock.
@@ -145,7 +146,7 @@ lowest offer and `high_price` the highest; `in_stock` is true when any variant i
 | `price_history` | run × store × product | price, stock and `price_change` against the previous snapshot |
 | `rejects` | run × store × page | stage and reason of every page that did not become a row |
 
-Only runs whose transform finished are visible. Timestamps are UTC.
+`runs` lists every transformed run, failed ones included; the other views only show runs with status ok or partial. Timestamps are UTC.
 
 ## Configuration
 
