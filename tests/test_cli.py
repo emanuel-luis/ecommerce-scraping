@@ -1,8 +1,10 @@
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
+import typer.rich_utils
 from test_transform import LEVI_URL, TNG_URL, fixture, good, write_run
 from typer.testing import CliRunner
 
@@ -13,6 +15,7 @@ from ecommerce_scraping.runs import StepError
 from ecommerce_scraping.stores import STORES, Store
 
 runner = CliRunner()
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
 NOW = datetime(2026, 1, 3, tzinfo=UTC)
 
 
@@ -61,14 +64,23 @@ def test_store_choices_match_the_registry() -> None:
     assert {s.value for s in cli.StoreName} == set(STORES)
 
 
-def test_version_and_help() -> None:
+def plain_help(monkeypatch: pytest.MonkeyPatch, *args: str) -> str:
+    # On GitHub Actions Typer forces a styled 80-column Rich console: read help as wide plain text.
+    monkeypatch.setattr(typer.rich_utils, "FORCE_TERMINAL", False)
+    monkeypatch.setattr(typer.rich_utils, "MAX_WIDTH", 200)
+    result = invoke(*args, "--help")
+    assert result.exit_code == 0
+    return ANSI.sub("", result.output)
+
+
+def test_version_and_help(monkeypatch: pytest.MonkeyPatch) -> None:
     result = invoke("--version")
     assert result.exit_code == 0 and result.stdout.strip() == __version__
-    result = invoke("crawl", "--help")
-    assert result.exit_code == 0 and "hering" in result.output and "--no-limit" in result.output
-    result = invoke("--help")
+    crawl_help = plain_help(monkeypatch, "crawl")
+    assert "hering" in crawl_help and "--no-limit" in crawl_help
+    main_help = plain_help(monkeypatch)
     for command in ("crawl", "transform", "views", "run", "stats"):
-        assert command in result.output
+        assert command in main_help
 
 
 def test_crawl_resolves_stores_with_overrides_and_prints_the_run_id(
