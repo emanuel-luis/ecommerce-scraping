@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Build stage: install the locked dependencies and the project into /app/.venv.
-FROM python:3.12.15-slim-trixie AS builder
+FROM python:3.15.0-slim-trixie AS builder
 # uv matches the uv_build range in pyproject.toml (>=0.13.5,<0.14).
 COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /bin/uv
 ENV UV_COMPILE_BYTECODE=1 \
@@ -18,7 +18,7 @@ RUN uv sync --locked --no-dev --no-editable
 
 # Runtime stage: the virtualenv only, run by a non-root user. Same base as the builder, so the
 # venv's interpreter path exists here too.
-FROM python:3.12.15-slim-trixie
+FROM python:3.15.0-slim-trixie
 RUN groupadd --system --gid 10001 app \
     && useradd --system --uid 10001 --gid app --no-create-home --shell /usr/sbin/nologin app \
     && mkdir /data \
