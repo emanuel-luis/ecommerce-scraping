@@ -79,29 +79,47 @@ def test_redact_removes_reviews_and_body() -> None:
     assert "reviews" not in blocks[0]
 
 
-def test_redact_keeps_graph() -> None:
+def test_redact_lifts_products_out_of_graph_and_drops_other_nodes() -> None:
     graph = {"@graph": [{"@type": "Product", "name": "A", "review": []}, {"@type": "WebSite"}]}
-    blocks = extract_blocks(redact_page(page(ld(graph))))
-    assert blocks == [{"@graph": [{"@type": "Product", "name": "A"}, {"@type": "WebSite"}]}]
+    crumbs = {"@type": "BreadcrumbList", "itemListElement": []}
+    blocks = extract_blocks(redact_page(page(ld(crumbs), ld(graph))))
+    assert blocks == [{"@type": "Product", "name": "A"}]
+
+
+def test_redact_drops_person_and_review_nodes() -> None:
+    review = {"@type": "Review", "author": {"@type": "Person", "name": "Zelda Synthetic"}}
+    person = {"@type": "Person", "name": "Zelda Synthetic"}
+    product = {
+        "@type": "Product",
+        "name": "A",
+        "author": "Zelda Synthetic",
+        "isRelatedTo": [person, {"@type": "Product", "name": "B"}],
+        "subjectOf": review,
+    }
+    out = redact_page(page(ld(review), ld({"@graph": [person, product]})))
+    assert "Zelda Synthetic" not in out
+    assert extract_blocks(out) == [
+        {"@type": "Product", "name": "A", "isRelatedTo": [{"@type": "Product", "name": "B"}]}
+    ]
 
 
 def test_redact_counts_unparsable_blocks() -> None:
     html = page(
-        ld({"ok": 1}),
+        ld({"@type": "Product", "name": "ok"}),
         '<script type="application/ld+json">{bad</script>',
         '<script type="application/ld+json">[1,</script>',
     )
     out = redact_page(html)
     assert "<!-- redacted: 2 unparsable ld+json block(s) dropped -->" in out
-    assert extract_blocks(out) == [{"ok": 1}]
+    assert extract_blocks(out) == [{"@type": "Product", "name": "ok"}]
     assert "redacted:" not in redact_page(page(ld({"ok": 1})))
 
 
 def test_redact_escapes_script_end_inside_strings() -> None:
-    out = redact_page(page(ld({"name": "</script><b>x</b>"})))
+    out = redact_page(page(ld({"@type": "Product", "name": "</script><b>x</b>"})))
     assert out.count("</script>") == 1
     assert "<\\/script>" in out
-    assert extract_blocks(out) == [{"name": "</script><b>x</b>"}]
+    assert extract_blocks(out) == [{"@type": "Product", "name": "</script><b>x</b>"}]
 
 
 def test_redact_canonical() -> None:
@@ -143,7 +161,7 @@ json_tree = st.recursive(
     lambda kids: (
         st.lists(kids, max_size=3)
         | st.dictionaries(
-            st.sampled_from(["review", "reviews", "name", "offers"]), kids, max_size=3
+            st.sampled_from(["review", "reviews", "author", "name", "offers"]), kids, max_size=3
         )
     ),
     max_leaves=12,
@@ -160,8 +178,8 @@ def keys(node: Any) -> set[str]:
 
 @given(json_tree)
 def test_redacted_output_never_has_review_keys(tree: Any) -> None:
-    out = redact_page(page(ld(tree)))
-    assert not {"review", "reviews"} & keys(extract_blocks(out))
+    out = redact_page(page(ld({"@type": "Product", "data": tree}), ld(tree)))
+    assert not {"review", "reviews", "author"} & keys(extract_blocks(out))
     assert redact_page(out) == out
 
 

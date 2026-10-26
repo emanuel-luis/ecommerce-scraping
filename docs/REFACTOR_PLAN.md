@@ -21,8 +21,9 @@ robots.txt -> /sitemap.xml        redacted pages    validated Parquet      DuckD
 
 ## Choices
 
-- **Raw is redacted at write time.** `redact_page(html)` keeps the canonical link and the
-  `application/ld+json` blocks with every `review` / `reviews` key removed, and drops the body.
+- **Raw is redacted at write time.** `redact_page(html)` keeps the canonical link and one
+  `application/ld+json` block per schema.org `Product` node (an allow-list), with reviews,
+  authors and any `Person` / `Review` node removed; the body and all other JSON-LD are dropped.
   Committed fixtures are produced by the same function, so they hold no personal data by
   construction.
 - **Raw goes through an item pipeline**, not HTTPCACHE (a fingerprint-keyed cache, not

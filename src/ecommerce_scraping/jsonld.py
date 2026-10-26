@@ -14,7 +14,10 @@ from parsel import Selector
 
 from ecommerce_scraping.models import Availability
 
-_REVIEW_KEYS = frozenset({"review", "reviews"})
+# Personal data never reaches the raw layer: only Product nodes are kept, without these keys
+# and without any nested node typed as a person or a review.
+_PERSONAL_KEYS = frozenset({"review", "reviews", "author", "creator", "contributor"})
+_PERSONAL_TYPES = frozenset({"Person", "Review"})
 _DROPPED_NOTE = re.compile(r"<!-- redacted: (\d+) unparsable")
 
 
@@ -36,11 +39,19 @@ def extract_blocks(html: str) -> list[Any]:
     return _parse(Selector(text=html))[0]
 
 
-def _strip_reviews(node: Any) -> Any:
+def _is_personal(node: Any) -> bool:
+    return isinstance(node, dict) and bool(_types(node) & _PERSONAL_TYPES)
+
+
+def _strip_personal(node: Any) -> Any:
     if isinstance(node, dict):
-        return {k: _strip_reviews(v) for k, v in node.items() if k not in _REVIEW_KEYS}
+        return {
+            k: _strip_personal(v)
+            for k, v in node.items()
+            if k not in _PERSONAL_KEYS and not _is_personal(v)
+        }
     if isinstance(node, list):
-        return [_strip_reviews(v) for v in node]
+        return [_strip_personal(v) for v in node if not _is_personal(v)]
     return node
 
 
@@ -52,7 +63,11 @@ def _canonical(sel: Selector) -> str | None:
 
 
 def redact_page(html: str) -> str:
-    """A minimal deterministic page: canonical link and ld+json without reviews, no body."""
+    """A minimal deterministic page: the canonical link and one ld+json block per Product node.
+
+    Everything else is dropped: the body, non-Product JSON-LD (breadcrumbs, organization,
+    navigation) and, inside a Product, reviews, authors and any Person or Review node.
+    """
     sel = Selector(text=html)
     blocks, dropped = _parse(sel)
     # Keep the count from an earlier pass so that redacting twice changes nothing.
@@ -61,8 +76,8 @@ def redact_page(html: str) -> str:
     parts = ["<!doctype html>", '<html><head><meta charset="utf-8">']
     if canonical is not None:
         parts.append(f'<link rel="canonical" href="{escape(canonical, quote=True)}">')
-    for block in blocks:
-        body = json.dumps(_strip_reviews(block), ensure_ascii=False, indent=2)
+    for product in iter_products(blocks):
+        body = json.dumps(_strip_personal(product), ensure_ascii=False, indent=2)
         parts.append(f'<script type="application/ld+json">{body.replace("</", "<\\/")}</script>')
     if dropped:
         parts.append(f"<!-- redacted: {dropped} unparsable ld+json block(s) dropped -->")
