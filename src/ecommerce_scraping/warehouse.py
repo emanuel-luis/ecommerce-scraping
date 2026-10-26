@@ -1,8 +1,9 @@
 """Serving layer: DuckDB views over the processed Parquet and the run summaries.
 
 Views are recreated on every call with absolute paths baked in, so creating them is idempotent
-and follows a moved data dir. Only runs with a summary of status ok or partial are exposed:
-files of a crashed or unfinished transform stay hidden.
+and follows a moved data dir. `runs` lists every transformed run, failed ones included; the other
+views only expose runs whose summary status is ok or partial, so files of a crashed or unfinished
+transform stay hidden.
 """
 
 from typing import Any

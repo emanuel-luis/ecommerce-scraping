@@ -37,9 +37,8 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["-ra", "--strict-markers", "--strict-config", "-m", "not network"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
 timeout = 60
-markers = ["network: hits a live site (pytest -m network)"]
 
 [tool.coverage.run]
 source = ["ecommerce_scraping"]
