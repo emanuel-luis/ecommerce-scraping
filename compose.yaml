@@ -1,0 +1,32 @@
+# `docker compose up` crawls the live stores politely (10 products each), then prints the stats.
+# Data lives in the named volume `data`; `docker compose down -v` removes it.
+name: ecommerce-scraping
+
+services:
+  crawler:
+    build: .
+    image: ecommerce-scraping:local
+    command: ["run", "--limit", "10"]
+    volumes:
+      - data:/data
+    restart: "no"
+    # optional overrides, see .env.example
+    env_file:
+      - path: .env
+        required: false
+
+  stats:
+    image: ecommerce-scraping:local
+    command: ["stats"]
+    volumes:
+      - data:/data
+    restart: "no"
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      crawler:
+        condition: service_completed_successfully
+
+volumes:
+  data: {}
