@@ -34,6 +34,8 @@ layers, idempotency, contracts and polite crawling visible.
 - Politeness: `ROBOTSTXT_OBEY`, identifying User-Agent, one request at a time per store, delay
   >= 2 s (lower only for loopback targets), AutoThrottle, stop on 403/429 (no 429 retry), a
   product limit per run. Never add a way around robots.txt or an anti-bot response.
+- No listening servers in a crawl: Scrapy's telnet console and remote-control HTTP server stay
+  disabled (`scrapy_settings.py`; asserted in `test_crawl.py` and the e2e).
 - Tests and CI never contact a store. A live crawl only happens through `crawl`/`run`/`make demo`.
 - The raw layer holds only `redact_page` output: canonical link + JSON-LD `Product` nodes without
   reviews, authors or Person/Review nodes. Fixtures are produced by the same function.
