@@ -1,4 +1,4 @@
-.PHONY: help install lint format test test-fast test-network demo up down docker-build clean
+.PHONY: help install lint format test test-fast demo up down docker-build clean
 
 help:           ## list the targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -20,9 +20,6 @@ test:           ## offline tests with the 85 % coverage gate
 
 test-fast:      ## offline tests without coverage
 	uv run pytest -q
-
-test-network:   ## the tests that hit a live site
-	uv run pytest -m network
 
 demo:           ## small live run (5 products per store), then the table counts
 	uv run ecommerce-scraping run --limit 5
