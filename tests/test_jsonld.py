@@ -1,10 +1,28 @@
 import json
+from dataclasses import asdict
+from datetime import UTC, datetime
+from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
+import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from ecommerce_scraping.jsonld import extract_blocks, redact_page
+from ecommerce_scraping.jsonld import (
+    ParsedProduct,
+    ParseError,
+    extract_blocks,
+    iter_products,
+    norm_availability,
+    norm_price,
+    norm_text,
+    parse_node,
+    parse_product,
+    pick_product,
+    redact_page,
+)
+from ecommerce_scraping.models import ProductSnapshot
 
 
 def page(*scripts: str, head: str = "", body: str = "<p>secret body</p>") -> str:
@@ -145,3 +163,200 @@ def test_redacted_output_never_has_review_keys(tree: Any) -> None:
     out = redact_page(page(ld(tree)))
     assert not {"review", "reviews"} & keys(extract_blocks(out))
     assert redact_page(out) == out
+
+
+PAGES = Path(__file__).parent / "fixtures" / "pages"
+
+
+def parse_fixture(name: str, url: str = "http://127.0.0.1:8000/x/p") -> ParsedProduct:
+    return parse_product((PAGES / f"{name}.html").read_text(encoding="utf-8"), url)
+
+
+def test_levi() -> None:
+    p = parse_fixture("levi")
+    assert p.url == "http://127.0.0.1:8000/x/p"
+    assert p.name == "Camiseta Levi's® Perfect Graphic Tee"
+    assert p.brand == "Levi's"
+    assert (p.sku, p.mpn, p.gtin) == ("29869", None, "7891234041197")
+    assert p.category == "Feminino"
+    assert p.image_url is not None
+    assert p.image_url.endswith("LB0010208_1.jpg?v=638901036276700000")
+    assert (p.price, p.high_price, p.currency) == (Decimal("169.90"), None, "BRL")
+    assert (p.availability, p.in_stock, p.offer_count) == ("InStock", True, 1)
+
+
+def test_tng_prefers_the_public_host_block() -> None:
+    p = parse_fixture("tng")
+    assert (p.sku, p.mpn, p.gtin) == ("00475289", "BNMCIS309501", "00475289")
+    assert p.price == Decimal("99.99")
+    assert p.high_price == Decimal("99.99")
+    assert (p.in_stock, p.offer_count) == (True, 1)
+
+
+def test_tng_first_block_when_no_host_matches() -> None:
+    html = (PAGES / "tng.html").read_text(encoding="utf-8").replace('rel="canonical"', 'rel="x"')
+    p = parse_product(html, "http://127.0.0.1:8000/p")
+    assert (p.sku, p.gtin) == ("475289", "30950")  # the myvtex block, gtin13
+
+
+def test_hering_aggregate_typed_with_type() -> None:
+    p = parse_fixture("hering")
+    assert p.name == "Calça Básica Feminina Jogger Em Moletom Peluciado - Preto"
+    assert p.category == "Roupas e Acessórios > Vestuário > Calças > Jogger"
+    assert (p.color, p.material, p.mpn, p.sku) == ("PRETO", "100% ALGODAO", "05V2N10EN", "83")
+    assert (p.price, p.high_price, p.currency) == (Decimal("99.99"), Decimal("99.99"), "BRL")
+    assert (p.availability, p.in_stock, p.offer_count) == ("OutOfStock", False, 5)
+
+
+def test_damyller_http_availability_and_integer_price() -> None:
+    p = parse_fixture("damyller")
+    assert p.price == Decimal("299.00")
+    assert p.price.as_tuple().exponent == -2
+    # four nested offers are out of stock but one is in stock: any InStock wins
+    assert (p.availability, p.in_stock, p.offer_count) == ("InStock", True, 5)
+
+
+@pytest.mark.parametrize("name", ["levi", "tng", "hering", "damyller"])
+def test_fixtures_build_snapshots(name: str) -> None:
+    ProductSnapshot(
+        **asdict(parse_fixture(name)),
+        run_id="20261026T000000Z",
+        store="s",
+        product_key="/k",
+        scraped_at=datetime(2026, 10, 26, tzinfo=UTC),
+        raw_path="r",
+    )
+
+
+@pytest.mark.parametrize("name", ["synthetic_no_jsonld", "synthetic_invalid_json"])
+def test_synthetic_pages_without_a_product(name: str) -> None:
+    with pytest.raises(ParseError, match="no ld\\+json Product"):
+        parse_fixture(name)
+
+
+def test_synthetic_graph_only() -> None:
+    p = parse_fixture("synthetic_graph_only", "https://shop.example.test/graph-jacket/p")
+    assert (p.name, p.sku, p.brand) == ("Graph Jacket", "GJ-1", "Synthetic Brand")
+    assert (p.price, p.currency, p.in_stock) == (Decimal("1299.90"), "BRL", True)
+    assert p.image_url == "https://img.example.test/gj.jpg"
+
+
+def test_synthetic_reviews_never_leak() -> None:
+    html = (PAGES / "synthetic_reviews.html").read_text(encoding="utf-8")
+    assert "Zelda Synthetic" in html
+    assert "Zelda Synthetic" not in redact_page(html)
+    parsed = parse_product(html, "https://shop.example.test/review-hoodie/p")
+    assert "Zelda Synthetic" not in repr(asdict(parsed))
+    assert parsed.price == Decimal("149.90")
+
+
+@pytest.mark.parametrize(
+    "offers", [None, {}, {"@type": "Offer", "price": "free"}, {"@type": "AggregateOffer"}]
+)
+def test_no_offer_price(offers: Any) -> None:
+    with pytest.raises(ParseError, match="no offer price"):
+        parse_node({"@type": "Product", "offers": offers}, "u")
+
+
+def test_iter_and_pick_product() -> None:
+    a = {"@type": ["Thing", "Product"], "@id": "https://A.test/p"}
+    b = {"type": "Product", "url": "https://b.test/p"}
+    blocks = [{"@graph": [{"x": a}, {"@type": "WebSite"}]}, [b, {"@id": 3}]]
+    assert list(iter_products(blocks)) == [a, b]
+    assert pick_product([a, b], "B.TEST") is b
+    assert pick_product([a, b], "none.test") is a
+    assert pick_product([a, b], None) is a
+    assert pick_product([], "b.test") is None
+    bad = {"@id": "http://[bad"}
+    assert pick_product([bad], "b.test") is bad
+
+
+def _offers(value: Any) -> ParsedProduct:
+    return parse_node({"@type": "Product", "name": "n", "offers": value}, "u")
+
+
+def test_offer_list_without_types() -> None:
+    p = _offers([{"price": "10"}, {"@type": "Offer", "price": 5, "priceCurrency": "BRL"}])
+    assert (p.price, p.high_price, p.currency) == (Decimal("5.00"), Decimal("10.00"), "BRL")
+    assert (p.in_stock, p.availability, p.offer_count) == (None, None, 2)
+
+
+def test_aggregate_with_nested_offers_only() -> None:
+    p = _offers(
+        {
+            "@type": "AggregateOffer",
+            "offerCount": "7",
+            "offers": [{"price": 3, "availability": "SoldOut"}, {"price": 4}],
+        }
+    )
+    assert (p.price, p.high_price, p.offer_count) == (Decimal(3), Decimal(4), 7)
+    assert (p.in_stock, p.availability) == (False, "SoldOut")
+
+
+def test_aggregate_with_low_price_only() -> None:
+    p = _offers({"@type": "AggregateOffer", "lowPrice": 1, "offerCount": True})
+    assert (p.price, p.high_price, p.offer_count) == (Decimal(1), None, None)
+
+
+def test_text_fields() -> None:
+    p = parse_node(
+        {
+            "@type": "Product",
+            "name": " A&amp;B \n c ",
+            "brand": "  Acme ",
+            "image": [{}, {"contentUrl": "http://i/1"}],
+            "gtin8": "123",
+            "gtin13": "",
+            "mpn": "",
+            "offers": {"price": 1},
+        },
+        "u",
+    )
+    assert (p.name, p.brand, p.image_url) == ("A&B c", "Acme", "http://i/1")
+    assert (p.gtin, p.mpn) == ("123", None)
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("R$ 1.299,90", "1299.90"),
+        ("169.9", "169.90"),
+        ("299", "299.00"),
+        ("1,5", "1.50"),
+        ("1.299,9", "1299.90"),
+        ("1,299.90", "1299.90"),
+        ("0.005", "0.01"),
+        (1e-05, "0.00"),
+        (12.5, "12.50"),
+        (".5", "0.50"),
+        (True, None),
+        ("-5", None),
+        (-1, None),
+        ("1.299.000", None),
+        ("1,2,3", None),
+        ("10 20", None),
+        ("abc", None),
+        ("", None),
+        (float("nan"), None),
+        (float("inf"), None),
+        (10**40, None),
+        (None, None),
+        ([1], None),
+    ],
+)
+def test_norm_price(raw: Any, expected: str | None) -> None:
+    assert norm_price(raw) == (None if expected is None else Decimal(expected))
+
+
+def test_norm_text_and_availability_examples() -> None:
+    assert norm_text(3) == "3"
+    assert norm_text(1.5) == "1.5"
+    assert norm_text(True) is None
+    assert norm_text(float("nan")) is None
+    assert norm_text("  ") is None
+    assert norm_text({}) is None
+    assert norm_availability("HTTP://schema.org/instock") == "InStock"
+    assert norm_availability("schema.org/PreOrder") == "PreOrder"
+    assert norm_availability(" soldout ") == "SoldOut"
+    assert norm_availability("Maybe") is None
+    assert norm_availability(None) is None
