@@ -77,6 +77,8 @@ def test_run_end_to_end(start_site: Start, tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     run_id = result.stdout.splitlines()[0]
     assert "blocked_403" in result.stderr
+    assert "Remote control" not in result.stderr  # no localhost code-execution server
+    assert "Telnet console listening" not in result.stderr
 
     assert sites["hering"].paths == ["/robots.txt"]
     for name in NORMAL:

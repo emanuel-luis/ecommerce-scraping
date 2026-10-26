@@ -30,6 +30,7 @@ def test_module_settings_follow_the_plan() -> None:
     assert not s.getbool("COOKIES_ENABLED")
     assert not s.getbool("HTTPCACHE_ENABLED")
     assert not s.getbool("TELNETCONSOLE_ENABLED")
+    assert not s.getbool("REMOTE_CONTROL_ENABLED")
     assert s.getint("CLOSESPIDER_TIMEOUT") == 3600
     assert s.getint("CLOSESPIDER_ERRORCOUNT") == 10
     assert s.getdict("ITEM_PIPELINES") == {RawArchivePipeline: 300}

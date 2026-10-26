@@ -21,7 +21,10 @@ DOWNLOAD_MAXSIZE = 10 * 1024 * 1024
 
 COOKIES_ENABLED = False
 HTTPCACHE_ENABLED = False
+# No listening servers: the telnet console and the remote-control HTTP server (on by default since
+# Scrapy 2.19; it runs Python code sent with a token) are not needed by a batch crawl.
 TELNETCONSOLE_ENABLED = False
+REMOTE_CONTROL_ENABLED = False
 
 CLOSESPIDER_TIMEOUT = 3600
 CLOSESPIDER_ERRORCOUNT = 10
