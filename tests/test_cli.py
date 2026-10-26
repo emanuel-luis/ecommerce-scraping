@@ -111,7 +111,7 @@ def test_crawl_limit_and_no_limit(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.parametrize("command", ["crawl", "transform"])
-@pytest.mark.parametrize("bad", ["manual-1", "../x"])
+@pytest.mark.parametrize("bad", ["manual-1", "../x", "20261340T000000Z"])
 def test_bad_run_id_is_rejected_before_any_work(
     command: str, bad: str, env: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

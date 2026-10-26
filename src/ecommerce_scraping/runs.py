@@ -31,7 +31,14 @@ def new_run_id(now: datetime | None = None) -> str:
 
 
 def is_run_id(value: str) -> bool:
-    return RUN_ID_RE.fullmatch(value) is not None
+    """A zero-padded YYYYMMDDTHHMMSSZ that is also a real UTC time (no month 13)."""
+    if RUN_ID_RE.fullmatch(value) is None:  # strptime alone accepts unpadded fields
+        return False
+    try:
+        datetime.strptime(value, _RUN_ID_FORMAT)
+    except ValueError:
+        return False
+    return True
 
 
 def run_date(run_id: str) -> date:

@@ -42,8 +42,11 @@ layers, idempotency, contracts and polite crawling visible.
 - `transform` is the only parse path and is idempotent: same raw run -> same rows at the same
   paths. It deletes `_runs/<run_id>.json` first and writes it last; views only expose runs with
   status ok or partial.
-- Per store and run: manifest lines = `pages_archived` in the raw `run.json` (checked by transform); every page becomes a row, a reject or a duplicate. `product_key` is the
-  lowercased path of the final URL.
+- Per store and run: manifest lines = `pages_archived` in the raw `run.json` (checked by
+  transform); every page becomes a row, a reject or a duplicate. `product_key` is the lowercased
+  path of the final URL.
+- Run ids are `YYYYMMDDTHHMMSSZ` real UTC times; the CLI rejects anything else and the
+  latest-run lookups skip other names.
 - Partition columns (`store`, `run_date`) live only in the path; `run_date` comes from the run_id.
 - Timestamps are aware UTC in Python and UTC `TIMESTAMP` columns in Parquet and DuckDB
   (`naive_utc`).

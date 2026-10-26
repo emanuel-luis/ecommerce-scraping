@@ -31,7 +31,8 @@ def test_run_date_parses_and_validates() -> None:
 
 def test_is_run_id() -> None:
     assert is_run_id("20260103T023005Z")
-    assert not any(is_run_id(v) for v in ["manual-1", "../x", "20260103T023005Z\n", ""])
+    bad = ["manual-1", "../x", "20260103T023005Z\n", "", "20261340T000000Z", "20260230T250000Z"]
+    assert not any(is_run_id(v) for v in bad)
 
 
 def test_naive_utc_converts_to_utc_wall_clock() -> None:
@@ -76,6 +77,8 @@ def test_latest_crawled_run_ignores_names_that_are_not_run_ids(tmp_path: Path) -
     paths.raw_summary("20260101T000000Z").write_text("{}", encoding="utf-8")
     (paths.raw_root / "manual-1").mkdir()
     (paths.raw_root / "manual-1" / "run.json").write_text("{}", encoding="utf-8")
+    (paths.raw_root / "20261340T000000Z").mkdir()  # the right shape, an impossible date
+    (paths.raw_root / "20261340T000000Z" / "run.json").write_text("{}", encoding="utf-8")
     assert latest_crawled_run(paths) == "20260101T000000Z"
 
 
