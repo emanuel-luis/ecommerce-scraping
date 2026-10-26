@@ -4,6 +4,7 @@
   <url><loc>{{BASE}}/blocked-product/p</loc></url>
   <url><loc>{{BASE}}/missing-product/p</loc></url>
   <url><loc>{{BASE}}/no-jsonld-product/p</loc></url>
+  <url><loc>{{BASE}}/FIXTURE-PRODUCT/p</loc></url>
   <url><loc>{{BASE}}/old-fixture-product/p</loc></url>
   <url><loc>{{BASE}}/category/camisetas</loc></url>
 </urlset>
