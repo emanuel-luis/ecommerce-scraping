@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import logging
+from typing import TYPE_CHECKING, Any
 
 from scrapy.exceptions import IgnoreRequest
-from scrapy.utils.defer import _schedule_coro  # what Scrapy's own CloseSpider extension uses
+from scrapy.utils.defer import deferred_from_coro
 
 if TYPE_CHECKING:
     from typing import Self
@@ -13,6 +14,10 @@ if TYPE_CHECKING:
     from scrapy import Spider
     from scrapy.crawler import Crawler
     from scrapy.http import Request, Response
+    from twisted.internet.defer import Deferred
+    from twisted.python.failure import Failure
+
+logger = logging.getLogger(__name__)
 
 BLOCK_STATUSES = frozenset({403, 429})
 
@@ -23,6 +28,7 @@ class BlockedStopMiddleware:
     def __init__(self, crawler: Crawler) -> None:
         self.crawler = crawler
         self.blocked: int | None = None
+        self._closing: Deferred[Any] | None = None  # kept so the close is not garbage-collected
 
     @classmethod
     def from_crawler(cls, crawler: Crawler) -> Self:
@@ -42,5 +48,12 @@ class BlockedStopMiddleware:
             self.blocked = response.status
             engine = self.crawler.engine
             assert engine is not None
-            _schedule_coro(engine.close_spider_async(reason=f"blocked_{response.status}"))
+            self._closing = deferred_from_coro(
+                engine.close_spider_async(reason=f"blocked_{response.status}")
+            )
+            self._closing.addErrback(self._log_close_failure)
         raise IgnoreRequest(f"blocked: HTTP {response.status} from {response.url}")
+
+    @staticmethod
+    def _log_close_failure(failure: Failure) -> None:
+        logger.error("could not close the blocked spider: %s", failure.getErrorMessage())
