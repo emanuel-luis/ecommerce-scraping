@@ -1,7 +1,18 @@
-venv/
+# Python
 __pycache__/
-geckodriver.log
+*.py[cod]
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+htmlcov/
+dist/
 
-# 2022 run output and a vendored browser driver: not source
-products/
-ecommerce/bin/
+# Local config and data
+.env
+data/
+*.db
+*.duckdb
+*.duckdb.wal
