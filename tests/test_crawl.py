@@ -23,7 +23,7 @@ def test_module_settings_follow_the_plan() -> None:
     assert s.getbool("ROBOTSTXT_OBEY")
     assert s.getint("CONCURRENT_REQUESTS") == 8
     assert s.getint("CONCURRENT_REQUESTS_PER_DOMAIN") == 1
-    assert not s.getbool("RANDOMIZE_DOWNLOAD_DELAY")
+    assert s.getfloat("DOWNLOAD_DELAY_JITTER") == 0
     assert s.getint("RETRY_TIMES") == 2
     assert 429 not in s.getlist("RETRY_HTTP_CODES")
     assert s.getint("DOWNLOAD_MAXSIZE") == 10 * 1024 * 1024
