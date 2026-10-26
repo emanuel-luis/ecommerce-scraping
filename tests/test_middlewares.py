@@ -7,6 +7,7 @@ import pytest
 from scrapy.exceptions import IgnoreRequest
 from scrapy.http import Request, Response
 from scrapy.utils.test import get_crawler
+from twisted.internet import defer
 
 from ecommerce_scraping import middlewares
 from ecommerce_scraping.middlewares import BlockedStopMiddleware
@@ -21,12 +22,13 @@ class Harness:
         async def close_spider_async(*, reason: str) -> None:
             self.reasons.append(reason)
 
-        def run(coro: Coroutine[Any, Any, None]) -> None:
+        def run(coro: Coroutine[Any, Any, None]) -> defer.Deferred[None]:
             asyncio.run(coro)
+            return defer.succeed(None)
 
         self.crawler = get_crawler()
         self.crawler.engine = SimpleNamespace(close_spider_async=close_spider_async)  # type: ignore[assignment]
-        monkeypatch.setattr(middlewares, "_schedule_coro", run)
+        monkeypatch.setattr(middlewares, "deferred_from_coro", run)
         self.mw = BlockedStopMiddleware.from_crawler(self.crawler)
 
     def respond(self, url: str, status: int) -> Response:

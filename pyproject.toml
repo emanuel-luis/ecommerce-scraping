@@ -13,7 +13,7 @@ license-files = ["LICENSE"]
 authors = [{ name = "Emanuel Luis", email = "emanuel.filho08@gmail.com" }]
 classifiers = ["Programming Language :: Python :: 3 :: Only", "Typing :: Typed"]
 dependencies = [
-  "scrapy>=2.13",
+  "scrapy>=2.14",
   "parsel>=1.9",
   "pydantic>=2.9",
   "pydantic-settings>=2.6",
