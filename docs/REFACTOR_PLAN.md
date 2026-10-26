@@ -163,7 +163,7 @@ CREATE OR REPLACE VIEW rejects AS
   crawler's stats.
 - Scrapy settings: `ROBOTSTXT_OBEY=True`; `USER_AGENT="ecommerce-scraping/<version>
   (+https://github.com/emanuel-luis/ecommerce-scraping)"`; `CONCURRENT_REQUESTS=8`,
-  `CONCURRENT_REQUESTS_PER_DOMAIN=1`, `DOWNLOAD_DELAY=3`, `RANDOMIZE_DOWNLOAD_DELAY=False`;
+  `CONCURRENT_REQUESTS_PER_DOMAIN=1`, `DOWNLOAD_DELAY=3`, `DOWNLOAD_DELAY_JITTER=0`;
   AutoThrottle on (start 3 s, max 60 s, target concurrency 1.0); `RETRY_TIMES=2`,
   `RETRY_HTTP_CODES=[500, 502, 503, 504, 522, 524, 408]` (no 429: stop instead);
   `DOWNLOAD_TIMEOUT=30`, `DOWNLOAD_MAXSIZE=10 MB`, cookies, HTTP cache and telnet off;

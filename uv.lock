@@ -894,7 +894,7 @@ requires-dist = [
     { name = "parsel", specifier = ">=1.9" },
     { name = "pydantic", specifier = ">=2.9" },
     { name = "pydantic-settings", specifier = ">=2.6" },
-    { name = "scrapy", specifier = ">=2.14" },
+    { name = "scrapy", specifier = ">=2.19" },
     { name = "typer", specifier = ">=0.15" },
 ]
 
