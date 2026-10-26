@@ -112,6 +112,11 @@ def _transform_store(
 ) -> tuple[list[ProductSnapshot], list[Reject], int]:
     store = crawl.store
     entries = _read_manifest(paths.raw_store_dir(run_id, store) / "manifest.jsonl")
+    if len(entries) != crawl.pages_archived:
+        raise StepError(
+            f"{store}: manifest has {len(entries)} lines but the crawl archived "
+            f"{crawl.pages_archived} pages"
+        )
     kept: dict[str, ProductSnapshot] = {}
     rejects: list[Reject] = []
     duplicates = 0
@@ -169,9 +174,6 @@ def _transform_store(
             continue
         kept[key] = snapshot
 
-    failed = len(rejects) - duplicates
-    if len(entries) != len(kept) + failed + duplicates:
-        raise StepError(f"{store}: manifest entries do not add up to rows plus rejects")
     return list(kept.values()), rejects, duplicates
 
 

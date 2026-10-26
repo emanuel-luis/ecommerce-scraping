@@ -101,7 +101,7 @@ Frozen pydantic models with `extra="forbid"`; datetimes are aware UTC.
   (`^[A-Z]{3}$`), availability (schema.org ItemAvailability token `| None`), in_stock
   `bool | None`, offer_count `int | None` (>= 1), image_url `str | None`, scraped_at, raw_path.
 - `Reject`: run_id, store, url, raw_path, stage (`parse` | `validate` | `duplicate`), reason,
-  scraped_at. Invariant: pages = rows_out + rejects.
+  scraped_at. Invariant: manifest lines = pages_archived; each page becomes a row or a reject.
 - `StoreCrawl`: store, finish_reason, pages_archived, robots_forbidden, http_errors, retries,
   started_at, finished_at. `CrawlSummary`: run_id, stores.
 - `StoreRun(StoreCrawl)`: + rows_out, rejected, duplicates. `RunSummary`: run_id, status

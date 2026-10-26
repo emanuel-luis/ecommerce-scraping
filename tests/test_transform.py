@@ -294,6 +294,17 @@ def test_missing_run_json(tmp_path: Path) -> None:
         transform_run(RUN_ID, cfg)
 
 
+@pytest.mark.parametrize("delta", [1, -1])
+def test_manifest_must_match_pages_archived(tmp_path: Path, delta: int) -> None:
+    cfg = write_run(tmp_path, {"levi": [(LEVI_URL, LEVI_URL, fixture("levi.html"))]})
+    paths = RunPaths(tmp_path)
+    manifest = paths.raw_store_dir(RUN_ID, "levi") / "manifest.jsonl"
+    line = manifest.read_text("utf-8")
+    manifest.write_text(line * 2 if delta > 0 else "", encoding="utf-8")
+    with pytest.raises(StepError, match=rf"levi: manifest has {1 + delta} lines .* archived 1 "):
+        transform_run(RUN_ID, cfg)
+
+
 def test_missing_manifest_means_no_entries(tmp_path: Path) -> None:
     cfg = write_run(tmp_path, {"levi": []})
     (RunPaths(tmp_path).raw_store_dir(RUN_ID, "levi") / "manifest.jsonl").unlink()
