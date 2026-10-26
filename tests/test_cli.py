@@ -76,14 +76,16 @@ def test_crawl_resolves_stores_with_overrides_and_prints_the_run_id(
 ) -> None:
     fake = FakeCrawl()
     monkeypatch.setattr(cli, "run_crawl", fake)
-    result = invoke("crawl", "-s", "levi", "--store", "tng", "-s", "levi", "--run-id", "X1")
-    assert result.exit_code == 0 and result.stdout.strip() == "X1"
+    result = invoke(
+        "crawl", "-s", "levi", "--store", "tng", "-s", "levi", "--run-id", "20260103T000000Z"
+    )
+    assert result.exit_code == 0 and result.stdout.strip() == "20260103T000000Z"
     ((stores, limit, run_id, _cfg),) = fake.calls
     assert [(s.name, s.base_url) for s in stores] == [
         ("levi", "http://127.0.0.1:1"),
         ("tng", STORES["tng"].base_url),
     ]
-    assert (limit, run_id) == (20, "X1")
+    assert (limit, run_id) == (20, "20260103T000000Z")
 
 
 def test_crawl_defaults_to_every_store_and_a_new_run_id(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -108,6 +110,26 @@ def test_crawl_limit_and_no_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     assert len(fake.calls) == 2
 
 
+@pytest.mark.parametrize("command", ["crawl", "transform"])
+@pytest.mark.parametrize("bad", ["manual-1", "../x"])
+def test_bad_run_id_is_rejected_before_any_work(
+    command: str, bad: str, env: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = FakeCrawl()
+    monkeypatch.setattr(cli, "run_crawl", fake)
+    result = invoke(command, "--run-id", bad)
+    assert result.exit_code == 2 and "YYYYMMDDTHHMMSSZ" in result.output
+    assert not fake.calls and not env.exists()
+
+
+def test_bad_settings_are_a_clean_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ECOMMERCE_DOWNLOAD_DELAY_S", "-1")
+    for command in ("crawl", "stats"):
+        result = invoke(command)
+        assert result.exit_code == 1 and "error: invalid settings:" in result.stderr
+        assert "Traceback" not in result.output
+
+
 def test_crawl_step_error_exits_1(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cli, "run_crawl", FakeCrawl(error=StepError("raw run directory exists")))
     result = invoke("crawl")
@@ -116,9 +138,11 @@ def test_crawl_step_error_exits_1(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_crawl_without_pages_exits_1(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cli, "run_crawl", FakeCrawl(pages=0))
-    result = invoke("crawl", "--run-id", "X1")
+    result = invoke("crawl", "--run-id", "20260103T000000Z")
     assert result.exit_code == 1
-    assert result.stdout.strip() == "X1" and "no store archived a page" in result.stderr
+    assert (
+        result.stdout.strip() == "20260103T000000Z" and "no store archived a page" in result.stderr
+    )
 
 
 def test_transform_ok_prints_a_line_per_store(env: Path) -> None:

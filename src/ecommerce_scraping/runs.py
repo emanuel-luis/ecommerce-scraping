@@ -2,12 +2,14 @@
 
 import json
 import logging
+import re
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
 _RUN_ID_FORMAT = "%Y%m%dT%H%M%SZ"
+RUN_ID_RE = re.compile(r"^\d{8}T\d{6}Z$")
 
 
 class StepError(RuntimeError):
@@ -26,6 +28,10 @@ def naive_utc(value: datetime) -> datetime:
 def new_run_id(now: datetime | None = None) -> str:
     """UTC start time as YYYYMMDDTHHMMSSZ; sorts in time order."""
     return (now or utc_now()).astimezone(UTC).strftime(_RUN_ID_FORMAT)
+
+
+def is_run_id(value: str) -> bool:
+    return RUN_ID_RE.fullmatch(value) is not None
 
 
 def run_date(run_id: str) -> date:
@@ -91,7 +97,11 @@ def latest_crawled_run(paths: RunPaths) -> str | None:
     """Newest raw run whose run.json exists and parses (it is written last)."""
     if not paths.raw_root.is_dir():
         return None
-    done = [p.name for p in paths.raw_root.iterdir() if _load_object(p / "run.json") is not None]
+    done = [
+        p.name
+        for p in paths.raw_root.iterdir()
+        if is_run_id(p.name) and _load_object(p / "run.json") is not None
+    ]
     return max(done, default=None)
 
 
@@ -102,7 +112,9 @@ def latest_transformed_run(paths: RunPaths) -> str | None:
     done = [
         p.stem
         for p in paths.runs_dir.glob("*.json")
-        if (s := _load_object(p)) is not None and s.get("status") in {"ok", "partial"}
+        if is_run_id(p.stem)
+        and (s := _load_object(p)) is not None
+        and s.get("status") in {"ok", "partial"}
     ]
     return max(done, default=None)
 

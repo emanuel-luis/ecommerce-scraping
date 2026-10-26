@@ -7,6 +7,8 @@ from typing import Annotated, Literal, Self
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
+from ecommerce_scraping.runs import RUN_ID_RE
+
 
 def _aware_utc(value: datetime) -> datetime:
     if value.tzinfo is None or value.utcoffset() is None:
@@ -64,7 +66,7 @@ class ManifestEntry(_Model):
 
 
 class ProductSnapshot(_Model):
-    run_id: str = Field(pattern=r"^\d{8}T\d{6}Z$")
+    run_id: str = Field(pattern=RUN_ID_RE.pattern)
     store: str = Field(pattern=r"^[a-z0-9-]+$")
     product_key: str = Field(min_length=1)
     url: str
