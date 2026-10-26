@@ -101,7 +101,7 @@ docker compose down -v       # removes the containers and the volume
 To query the result:
 
 ```bash
-uv run python -c "import duckdb; print(duckdb.connect('data/warehouse.duckdb', read_only=True).sql('SELECT store, name, price, in_stock FROM products_latest'))"
+uv run python -X utf8 -c "import duckdb; print(duckdb.connect('data/warehouse.duckdb', read_only=True).sql('SELECT store, name, price, in_stock FROM products_latest'))"
 ```
 
 ## CLI
