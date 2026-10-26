@@ -6,6 +6,7 @@ import pytest
 
 from ecommerce_scraping.runs import (
     RunPaths,
+    is_run_id,
     latest_crawled_run,
     latest_transformed_run,
     naive_utc,
@@ -26,6 +27,11 @@ def test_run_date_parses_and_validates() -> None:
     for bad in ["", "2026-01-03", "20260103T023005", "20261303T000000Z"]:
         with pytest.raises(ValueError, match="invalid run id"):
             run_date(bad)
+
+
+def test_is_run_id() -> None:
+    assert is_run_id("20260103T023005Z")
+    assert not any(is_run_id(v) for v in ["manual-1", "../x", "20260103T023005Z\n", ""])
 
 
 def test_naive_utc_converts_to_utc_wall_clock() -> None:
@@ -62,6 +68,23 @@ def test_latest_crawled_run_needs_a_parsable_run_json(tmp_path: Path) -> None:
         if text is not None:
             paths.raw_summary(rid).write_text(text, encoding="utf-8")
     assert latest_crawled_run(paths) == "20260102T000000Z"
+
+
+def test_latest_crawled_run_ignores_names_that_are_not_run_ids(tmp_path: Path) -> None:
+    paths = RunPaths(tmp_path)
+    paths.raw_run_dir("20260101T000000Z").mkdir(parents=True)
+    paths.raw_summary("20260101T000000Z").write_text("{}", encoding="utf-8")
+    (paths.raw_root / "manual-1").mkdir()
+    (paths.raw_root / "manual-1" / "run.json").write_text("{}", encoding="utf-8")
+    assert latest_crawled_run(paths) == "20260101T000000Z"
+
+
+def test_latest_transformed_run_ignores_names_that_are_not_run_ids(tmp_path: Path) -> None:
+    paths = RunPaths(tmp_path)
+    paths.runs_dir.mkdir(parents=True)
+    paths.run_summary("20260101T000000Z").write_text('{"status": "ok"}', encoding="utf-8")
+    (paths.runs_dir / "manual-1.json").write_text('{"status": "ok"}', encoding="utf-8")
+    assert latest_transformed_run(paths) == "20260101T000000Z"
 
 
 def test_latest_transformed_run_accepts_ok_and_partial_only(tmp_path: Path) -> None:

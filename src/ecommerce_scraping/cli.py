@@ -10,12 +10,13 @@ from enum import StrEnum
 from typing import Annotated
 
 import typer
+from pydantic import ValidationError
 
 from ecommerce_scraping import __version__
 from ecommerce_scraping.config import Settings
 from ecommerce_scraping.crawl import run_crawl
 from ecommerce_scraping.models import CrawlSummary, RunSummary
-from ecommerce_scraping.runs import RunPaths, StepError, new_run_id
+from ecommerce_scraping.runs import RunPaths, StepError, is_run_id, new_run_id
 from ecommerce_scraping.stores import Store, resolve_store
 from ecommerce_scraping.transform import transform_run
 from ecommerce_scraping.warehouse import create_views
@@ -46,9 +47,24 @@ LimitOpt = Annotated[
     typer.Option(min=1, help="Product pages per store. Default: ECOMMERCE_DEFAULT_LIMIT (20)."),
 ]
 NoLimitOpt = Annotated[
-    bool, typer.Option("--no-limit", help="Crawl every product sitemap (thousands of requests).")
+    bool,
+    typer.Option(
+        "--no-limit",
+        help="Crawl every product sitemap (thousands of requests); each store stops after one hour.",
+    ),
 ]
-RunIdOpt = Annotated[str | None, typer.Option(help="Run to use; default: the latest crawled.")]
+
+
+def _check_run_id(value: str | None) -> str | None:
+    if value is not None and not is_run_id(value):
+        raise typer.BadParameter("expected YYYYMMDDTHHMMSSZ, e.g. 20260103T023005Z")
+    return value
+
+
+RunIdOpt = Annotated[
+    str | None,
+    typer.Option(help="Run to use; default: the latest crawled.", callback=_check_run_id),
+]
 
 
 class _UtcFormatter(logging.Formatter):
@@ -68,16 +84,23 @@ def main(
     """Polite Scrapy ingestion pipeline for e-commerce product data."""
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(_UtcFormatter("%(asctime)sZ %(levelname)s %(message)s"))
-    logging.basicConfig(level=Settings().log_level.upper(), handlers=[handler], force=True)
+    with _errors():
+        level = Settings().log_level.upper()
+    logging.basicConfig(level=level, handlers=[handler], force=True)
 
 
 @contextmanager
 def _errors() -> Iterator[None]:
-    """A StepError becomes `error: <message>` on stderr and exit code 1."""
+    """A StepError or bad settings become `error: <message>` on stderr and exit code 1."""
     try:
         yield
     except StepError as exc:
         typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(1) from exc
+    except ValidationError as exc:
+        first = exc.errors()[0]
+        field = ".".join(str(p) for p in first["loc"])
+        typer.echo(f"error: invalid settings: {field}: {first['msg']}", err=True)
         raise typer.Exit(1) from exc
 
 
@@ -153,8 +176,8 @@ def views() -> None:
 @app.command()
 def run(store: StoreOpt = None, limit: LimitOpt = None, no_limit: NoLimitOpt = False) -> None:
     """crawl -> transform -> views in one process."""
-    cfg = Settings()
     with _errors():
+        cfg = Settings()
         summary = _crawl(cfg, store, limit, no_limit, None)
         _transform(cfg, summary.run_id)
         _views(cfg)
