@@ -1,0 +1,18 @@
+# Weekly update PRs, one per ecosystem: the SHA-pinned actions, uv.lock and the Docker bases.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      github-actions: { patterns: ["*"] }
+  - package-ecosystem: uv
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      uv: { patterns: ["*"] }
+  - package-ecosystem: docker
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      docker: { patterns: ["*"] }

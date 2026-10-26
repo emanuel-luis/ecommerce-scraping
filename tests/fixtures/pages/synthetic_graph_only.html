@@ -1,0 +1,31 @@
+<!-- synthetic fixture -->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="canonical" href="https://shop.example.test/graph-jacket/p">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {"@type": "WebSite", "@id": "https://shop.example.test/#website", "name": "Synthetic Shop"},
+      {
+        "@type": "Product",
+        "@id": "https://shop.example.test/graph-jacket/p",
+        "name": "Graph Jacket",
+        "sku": "GJ-1",
+        "image": {"@type": "ImageObject", "url": "https://img.example.test/gj.jpg"},
+        "brand": "Synthetic Brand",
+        "offers": {
+          "@type": "Offer",
+          "price": "1.299,90",
+          "priceCurrency": "BRL",
+          "availability": "InStock"
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+<body></body>
+</html>
