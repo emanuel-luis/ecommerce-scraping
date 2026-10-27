@@ -1,0 +1,104 @@
+# The serving schema in data/warehouse.duckdb: views over the processed Parquet files and the run
+# summaries. Columns and types from src/ecommerce_scraping/schema.py (Parquet DDL) and the views in
+# warehouse.py. Keys are the grain each view guarantees: transform keeps one row per product_key
+# per store and run, and runs unnests one row per store from each _runs/<run_id>.json.
+...@_style
+
+title: "Data model: DuckDB views over Parquet and run summaries" {
+  shape: text
+  near: top-center
+  style: {font-size: 24; bold: true}
+}
+
+note: "store and run_date come from the partition path (store=<s>/run_date=<d>/), never\nfrom the files. Timestamps are UTC. Every view except runs keeps only runs with\nstatus ok or partial. Solid arrow: (run_id, store) into runs; dashed: a view\ncomputed from product_snapshots." {
+  shape: text
+  near: bottom-center
+  style.font-size: 14
+}
+
+direction: right
+
+product_snapshots: {
+  shape: sql_table
+  run_id: varchar {constraint: [primary_key; foreign_key]}
+  store: varchar {constraint: [primary_key; foreign_key]}
+  product_key: varchar {constraint: primary_key}
+  run_date: date
+  url: varchar
+  sku: varchar
+  mpn: varchar
+  gtin: varchar
+  name: varchar
+  brand: varchar
+  category: varchar
+  color: varchar
+  material: varchar
+  price: "decimal(12,2)"
+  high_price: "decimal(12,2)"
+  currency: varchar
+  availability: varchar
+  in_stock: boolean
+  offer_count: integer
+  image_url: varchar
+  scraped_at: timestamp
+  raw_path: varchar
+}
+
+rejects: {
+  shape: sql_table
+  run_id: varchar {constraint: foreign_key}
+  store: varchar {constraint: foreign_key}
+  run_date: date
+  url: varchar
+  raw_path: varchar
+  stage: "varchar: parse, validate, duplicate"
+  reason: varchar
+  scraped_at: timestamp
+}
+
+runs: {
+  shape: sql_table
+  run_id: varchar {constraint: primary_key}
+  store: varchar {constraint: primary_key}
+  status: "varchar: ok, partial, failed"
+  transformed_at: timestamp
+  finish_reason: varchar
+  pages_archived: bigint
+  robots_forbidden: bigint
+  http_errors: bigint
+  retries: bigint
+  rows_out: bigint
+  rejected: bigint
+  duplicates: bigint
+  started_at: timestamp
+  finished_at: timestamp
+}
+
+products_latest: {
+  shape: sql_table
+  store: varchar {constraint: primary_key}
+  product_key: varchar {constraint: primary_key}
+  "...": "every product_snapshots column"
+}
+
+price_history: {
+  shape: sql_table
+  store: varchar {constraint: primary_key}
+  product_key: varchar {constraint: primary_key}
+  run_id: varchar {constraint: primary_key}
+  name: varchar
+  run_date: date
+  scraped_at: timestamp
+  price: "decimal(12,2)"
+  high_price: "decimal(12,2)"
+  currency: varchar
+  in_stock: boolean
+  price_change: "decimal: price - previous"
+}
+
+product_snapshots.run_id -> runs.run_id
+rejects.run_id -> runs.run_id
+# dashed: a view computed from product_snapshots. No edge labels: ELK gives a label its own layer,
+# which would push these views into a third column.
+product_snapshots.product_key -> products_latest.product_key {class: meta}
+product_snapshots.product_key -> price_history.product_key {class: meta}

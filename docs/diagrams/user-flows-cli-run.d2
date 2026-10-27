@@ -1,0 +1,37 @@
+# Operator journey: `make demo` = `ecommerce-scraping run --limit 5`, then `stats`. Grounded in the
+# Makefile (demo), src/ecommerce_scraping/{cli,crawl,spider,pipelines,transform,warehouse}.py.
+# transform and the views run inside the CLI process, so their messages start at the CLI.
+...@_style
+
+run: "A run from the CLI: make demo" {
+  shape: sequence_diagram
+  style: {font-size: 24; bold: true}
+
+  operator: Operator {class: actor}
+  cli: "ecommerce-scraping\nCLI" {class: process}
+  scrapy: "Scrapy\none spider\nper store" {class: process}
+  site: "Store site" {class: external}
+  raw: "raw" {class: store}
+  processed: "processed" {class: store}
+  duckdb: "warehouse\n.duckdb" {class: store}
+
+  operator -> cli: "make demo:\nrun --limit 5"
+  cli -> cli: "run_id = UTC start;\nrefuse a delay under\n2 s or an existing\nrun dir"
+  cli -> scrapy: "crawl"
+  scrapy -> site: "robots.txt,\nsitemap.xml, first\nproduct sitemap"
+  scrapy -> site: "5 product pages,\none at a time,\n3 s apart"
+  site -> scrapy: "HTML; a 403 or\n429 stops the store" {class: meta}
+  scrapy -> raw: "redacted page\n(gzip) +\nmanifest line"
+  scrapy -> cli: "crawl stats" {class: meta}
+  cli -> raw: "run.json, written last"
+  cli -> raw: "transform: read\nrun.json (fails if\nthe crawl is unfinished)"
+  cli -> processed: "delete\n_runs/<run_id>.json" {class: meta}
+  cli -> raw: "read manifest and\npages; check counts,\nSHA-256"
+  cli -> processed: "products and rejects\nParquet per store\n(temp file, replace)"
+  cli -> processed: "_runs/<run_id>.json,\nwritten last"
+  cli -> duckdb: "views: CREATE OR\nREPLACE the 5 views"
+  cli -> operator: "run_id, rows\nper store, status;\nexit 1 if failed" {class: meta}
+  operator -> cli: "stats"
+  cli -> duckdb: "recreate the views;\nread-only counts\nper store"
+  cli -> operator: "table per store" {class: meta}
+}
