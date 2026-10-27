@@ -1,0 +1,67 @@
+# The system in context: who runs it, what it talks to and the parts of the package.
+# Grounded in src/ecommerce_scraping/{cli,crawl,scrapy_settings,transform,warehouse}.py,
+# compose.yaml, Dockerfile, the Makefile and .github/workflows/. Layer detail is in data-flow.d2.
+# Arrows point from the part that acts to what it uses, so reads are drawn as dashed arrows.
+...@_style
+
+title: "Architecture: a polite crawler and an offline pipeline" {
+  shape: text
+  near: top-center
+  style: {font-size: 24; bold: true}
+}
+
+direction: down
+
+operator: Operator {class: actor}
+actions: "GitHub Actions\nci.yml: lint, test, docker,\ndiagrams · security.yml:\npip-audit, zizmor" {class: external}
+
+compose: "Docker Compose" {
+  class: group
+  crawler: "service crawler\nbuilds the image" {class: process}
+  stats: "service stats\nafter crawler exits 0" {class: process}
+}
+
+pkg: "Package ecommerce_scraping" {
+  class: group
+  cli: "Typer CLI · Python 3.12\ncrawl, transform, views,\nrun, stats" {class: process}
+  crawl: "Scrapy crawl\none process, one spider per store\nrobots.txt, AutoThrottle,\none request at a time per store\nno telnet, no remote control" {class: process}
+  transform: "transform (offline)\nJSON-LD parse, pydantic\ncontracts, dedupe, rejects" {class: process}
+  warehouse: "warehouse\nDuckDB views, stats" {class: process}
+  cli -> crawl
+  cli -> transform
+  cli -> warehouse
+}
+
+sites: "Store sites\nHering, Levi's, TNG" {class: external}
+
+data: "Data dir · data/, or the volume data at /data in compose" {
+  class: group
+  # every edge arrives from above: a bottom label is never crossed
+  label.near: bottom-left
+  raw: "raw\nredacted pages,\nmanifest, run.json" {class: store}
+  processed: "processed\nParquet by store / run_date,\nrejects, run summaries" {class: store}
+  duckdb: "warehouse.duckdb\n5 views" {class: serving}
+}
+
+operator -> pkg.cli: "make demo,\nCLI commands"
+operator -> compose.crawler: "docker compose up"
+compose.crawler -> pkg.cli: "run --limit 10"
+compose.stats -> pkg.cli: "stats"
+actions -> pkg: "offline: e2e crawl against\nlocal fixture servers" {class: meta}
+pkg.crawl -> sites: "robots.txt, sitemaps,\nproduct pages"
+pkg.crawl -> data.raw: "writes"
+pkg.transform -> data.raw: "reads" {class: meta}
+pkg.transform -> data.processed: "writes"
+pkg.warehouse -> data.processed: "reads" {class: meta}
+pkg.warehouse -> data.duckdb: "views"
+
+legend: Legend {
+  class: legend
+  grid-columns: 4
+  actor: actor {class: [actor; legend-actor]}
+  external: external system {class: [external; legend-item]}
+  process: process {class: [process; legend-item]}
+  store: stored data {class: [store; legend-store]}
+  serving: serving {class: [serving; legend-item]}
+  edges: "solid arrow: a call or a write\ndashed: a read, or tests" {shape: text; style.font-size: 13}
+}

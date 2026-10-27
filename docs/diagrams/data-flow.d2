@@ -1,0 +1,86 @@
+# Layers from the store sites to the DuckDB views, with the politeness rules, the redaction, the
+# contracts and the run metadata. Grounded in src/ecommerce_scraping/{spider,middlewares,
+# pipelines,scrapy_settings,crawl,jsonld,transform,warehouse,runs}.py.
+# Container labels stay short: ELK routes edges through the top-left corner of a container.
+...@_style
+
+title: "Data flow: store sites to DuckDB views" {
+  shape: text
+  near: top-center
+  style: {font-size: 24; bold: true}
+}
+
+direction: down
+
+src: "Store sites\nHering, Levi's, TNG\nrobots.txt → /sitemap.xml →\nsitemap/product-N.xml →\n/<slug>/p" {class: source}
+
+crawl: "crawl" {
+  class: group
+  spider: "ProductsSpider, one per store\nproduct sitemaps only,\nfirst N product URLs\n(20 by default)" {class: process}
+  polite: "politeness\nrobots.txt obeyed,\none request at a time\nper store, 3 s apart,\nAutoThrottle" {class: check}
+  blocked: "block stop\n403 or 429 stops\nthe store; 429 is\nnever retried" {class: check}
+  redact: "redact_page\nkeeps the canonical link\nand JSON-LD Product nodes;\ndrops the body, reviews,\nauthors, Person, Review" {class: process}
+  archive: "RawArchivePipeline\ngzip page + manifest line;\nrefuses an existing\nstore dir" {class: process}
+  spider -> redact -> archive
+}
+
+raw: "raw" {
+  class: group
+  pages: "raw/<run_id>/<store>/\n<hash>.html.gz\nredacted pages" {class: store}
+  manifest: "raw/<run_id>/<store>/\nmanifest.jsonl\nURL, status, UTC fetch\ntime, path, SHA-256" {class: store}
+  runjson: "raw/<run_id>/run.json\nwritten last; per store:\nfinish reason, pages,\nrobots refusals,\nHTTP errors, retries" {class: store}
+}
+
+transform: "transform" {
+  class: group
+  reconcile: "reconciliation\nmanifest lines = pages\narchived, per store;\nelse the step fails" {class: check}
+  parse: "parse (the only parse path)\nSHA-256 equals the\nmanifest's; a JSON-LD\nProduct with a price" {class: check}
+  validate: "validate · ProductSnapshot\nname, price ≥ 0 at 2 dp,\nhigh price ≥ price,\nISO currency, availability" {class: check}
+  dedupe: "dedupe\none row per product_key\n(lowercased URL path)" {class: check}
+  parse -> validate -> dedupe
+}
+
+processed: "processed" {
+  class: group
+  products: "processed/products/\nstore=<s>/run_date=<d>/\n<run_id>.parquet" {class: store}
+  rejects: "processed/rejects/\nstore=<s>/run_date=<d>/\n<run_id>.parquet\nstage and reason" {class: store}
+  runs: "processed/_runs/\n<run_id>.json\nok, partial or failed;\nrows, rejects, duplicates;\ndeleted first, written last" {class: store}
+}
+
+serving: "serving" {
+  class: group
+  views: "warehouse.duckdb views\nproduct_snapshots,\nproducts_latest,\nprice_history, rejects\n(runs ok or partial)" {class: serving}
+  runsview: "view runs\nrun × store,\nevery run" {class: serving}
+}
+
+src -> crawl.spider
+src -> crawl.polite {class: layer}
+src -> crawl.blocked {class: layer}
+crawl.archive -> raw.pages
+crawl.archive -> raw.manifest
+# run.json comes from run_crawl (crawl.py) once every spider has finished, not from the pipeline
+crawl -> raw.runjson: "crawl stats" {class: meta}
+raw.pages -> transform.parse
+raw.pages -> transform.reconcile {class: layer}
+raw.manifest -> transform.reconcile {class: meta}
+raw.runjson -> transform.reconcile {class: meta}
+transform.dedupe -> processed.products: "rows"
+transform.parse -> processed.rejects: "parse"
+transform.validate -> processed.rejects: "validate"
+transform.dedupe -> processed.rejects: "duplicate"
+# the run summary comes from transform_run after every store
+transform -> processed.runs: "run summary" {class: meta}
+processed.products -> serving.views
+processed.rejects -> serving.views
+processed.runs -> serving.runsview {class: meta}
+
+legend: Legend {
+  class: legend
+  grid-columns: 3
+  source: source pages {class: [source; legend-item]}
+  process: process {class: [process; legend-item]}
+  store: stored data {class: [store; legend-store]}
+  check: rule, contract or check {class: [check; legend-item]}
+  serving: serving view {class: [serving; legend-item]}
+  edges: "solid arrow: data\ndashed: run metadata\npaths: under data/" {shape: text; style.font-size: 13}
+}
