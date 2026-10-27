@@ -1,0 +1,26 @@
+# Operator journey: `docker compose up --build`, then `docker compose down -v`. Grounded in
+# compose.yaml (services crawler and stats, volume data) and the Dockerfile.
+...@_style
+
+up: "A run with Docker Compose" {
+  shape: sequence_diagram
+  style: {font-size: 24; bold: true}
+
+  operator: Operator {class: actor}
+  compose: "docker compose" {class: process}
+  crawler: "service crawler" {class: process}
+  site: "Store sites" {class: external}
+  volume: "volume data\nmounted at /data" {class: store}
+  stats: "service stats" {class: process}
+
+  operator -> compose: "docker compose up --build"
+  compose -> crawler: "build the image\n(non-root user);\nstart: run --limit 10"
+  crawler -> site: "polite crawl,\n10 products per store"
+  crawler -> volume: "raw pages, Parquet,\nwarehouse.duckdb"
+  crawler -> compose: "exit 0; exit 1 on a\nfailed step or no rows" {class: meta}
+  compose -> stats: "start once crawler\ncompleted successfully"
+  stats -> volume: "recreate the views,\nread counts per store"
+  stats -> operator: "stats table in the\ncompose log" {class: meta}
+  operator -> compose: "docker compose down -v"
+  compose -> volume: "remove the containers\nand the volume" {class: meta}
+}
