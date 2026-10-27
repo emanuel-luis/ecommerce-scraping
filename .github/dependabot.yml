@@ -13,6 +13,10 @@ updates:
       uv: { patterns: ["*"] }
   - package-ecosystem: docker
     directory: /
+    ignore:
+      # The runtime stays on Python 3.12 (refactor baseline); only patch and digest updates of that tag.
+      - dependency-name: "python"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
     schedule: { interval: weekly }
     groups:
       docker: { patterns: ["*"] }
