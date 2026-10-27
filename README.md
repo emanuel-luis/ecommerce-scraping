@@ -33,12 +33,9 @@ is small by default (20 products per store) and goes one request at a time per s
 
 ## Architecture
 
-```mermaid
-flowchart LR
-  sites[Store sites<br/>robots.txt, sitemaps, product pages] -->|crawl: Scrapy, robots.txt,<br/>AutoThrottle, stop on 403/429| raw[(raw<br/>redacted pages + manifest.jsonl)]
-  raw -->|transform: checksum, JSON-LD parser,<br/>pydantic, dedupe| processed[(processed<br/>Parquet by store / run_date<br/>+ rejects)]
-  processed -->|views| serving[(serving<br/>warehouse.duckdb)]
-```
+![Architecture: the operator runs the Typer CLI directly or through Docker Compose; the package crawls the store sites with Scrapy, then transforms and serves the data in the data directory (raw, processed, warehouse.duckdb); GitHub Actions tests it offline.](docs/diagrams/architecture.svg)
+
+Source: [architecture.d2](docs/diagrams/architecture.d2).
 
 | Layer | Location | Written by | Contents |
 | --- | --- | --- | --- |
@@ -48,6 +45,10 @@ flowchart LR
 
 `run_id` is the UTC start time of the crawl (`20261026T141502Z`), so runs sort in time order
 and a run always lands in one `run_date` partition.
+
+![Data flow: the crawl applies robots.txt, the per-store rate and the 403/429 stop, redacts each page and archives it with a manifest line; the transform reconciles the manifest, then parses, validates and dedupes every page into products or rejects Parquet and writes the run summary last; the DuckDB views read them.](docs/diagrams/data-flow.svg)
+
+Source: [data-flow.d2](docs/diagrams/data-flow.d2).
 
 The raw layer keeps a redacted page, not the full HTML: the canonical link and the JSON-LD
 `Product` nodes, with reviews, authors and any person node removed. That is all the
@@ -99,6 +100,10 @@ docker compose up --build    # crawler runs, then the stats service prints the c
 docker compose down -v       # removes the containers and the volume
 ```
 
+![Sequence of docker compose up: compose builds the image and starts the crawler service, which crawls ten products per store into the data volume; the stats service starts once the crawler exits 0 and prints the counts; docker compose down -v removes the volume.](docs/diagrams/user-flows-compose.svg)
+
+Source: [user-flows-compose.d2](docs/diagrams/user-flows-compose.d2).
+
 To query the result:
 
 ```bash
@@ -119,6 +124,10 @@ Store names: `hering`, `levi`, `tng`. A step exits with code 1 when it fails, or
 yields no rows at all. A run where some store yields nothing (for example a store that answered
 403) is `partial`: it is logged and exits 0. Logs go to stderr with UTC timestamps, the
 `run_id` and the step.
+
+![Sequence of make demo: the CLI picks a run_id, Scrapy reads robots.txt and the sitemaps and fetches five product pages per store into the raw layer, the CLI writes run.json, transforms the run into Parquet and the run summary, recreates the views, then stats reads the counts.](docs/diagrams/user-flows-cli-run.svg)
+
+Source: [user-flows-cli-run.d2](docs/diagrams/user-flows-cli-run.d2).
 
 ## Data contracts and quality checks
 
@@ -148,6 +157,10 @@ lowest offer and `high_price` the highest; `in_stock` is true when any variant i
 
 `runs` lists every transformed run, failed ones included; the other views only show runs with status ok or partial. Timestamps are UTC.
 
+![Data model: product_snapshots (one row per run, store and product_key) and rejects key into runs (one row per run and store); products_latest and price_history are computed from product_snapshots.](docs/diagrams/data-model.svg)
+
+Source: [data-model.d2](docs/diagrams/data-model.d2).
+
 ## Configuration
 
 Every setting is optional and none is a secret. Copy `.env.example` to `.env` to override.
@@ -168,6 +181,17 @@ make install       # uv sync --locked
 make lint          # ruff check, ruff format --check, mypy (what CI runs)
 make test          # offline tests with the 85 % coverage gate
 make help          # every target
+```
+
+The diagrams are D2 sources in [docs/diagrams/](docs/diagrams/), rendered to SVG with one pinned
+D2 release (v0.9.0, ELK layout) and committed. CI's `diagrams` job fails when a committed SVG is
+stale. The targets need bash, so on Windows run them in WSL.
+
+```bash
+make d2-install                          # pinned D2 for Linux x86_64, checksum verified
+make diagrams                            # render docs/diagrams/*.d2 to SVG
+make diagrams-check                      # render, then fail if an SVG differs from git
+make diagrams-watch NAME=architecture    # live preview in the browser while editing
 ```
 
 Tests never touch the stores. Parser tests use pages saved once and redacted (see
@@ -194,7 +218,7 @@ src/ecommerce_scraping/
   models.py           pydantic contracts; schema.py: Parquet columns
   runs.py             run ids, layer paths, step logger
 tests/                offline tests; fixtures/ holds redacted pages and the fixture site
-docs/                 decisions log and refactor plan
+docs/                 decisions log, refactor plan, diagrams/ (D2 sources + rendered SVGs)
 ```
 
 ## History
