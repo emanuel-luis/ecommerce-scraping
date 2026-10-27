@@ -30,6 +30,10 @@ in `pyproject.toml`).
 - Multi-stage Docker image (non-root, healthcheck), `compose.yaml`, Makefile, GitHub Actions
   (lint, test, docker, pip-audit, zizmor) and Dependabot.
 - `docs/DECISIONS.md`, `docs/REFACTOR_PLAN.md`, `CLAUDE.md`, MIT `LICENSE`.
+- Diagrams as code in `docs/diagrams/`: D2 sources for the architecture, the data flow, a CLI
+  run, a compose run and the data model, rendered to SVG with a pinned D2 (v0.9.0) and shown in
+  the README in place of the Mermaid flowchart. `make diagrams`, `make diagrams-check` and
+  `make diagrams-watch`, and a `diagrams` CI job that fails on a stale SVG.
 
 ### Changed
 
