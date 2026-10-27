@@ -32,7 +32,9 @@ jobs:
       - run: uv export --frozen --all-groups --no-emit-project -o "$RUNNER_TEMP/locked.txt"
       # Ignored: six Twisted 26.4.0 advisories, all in server code this project never runs (IMAP4
       # server, conch telnet, words XML stream, IRC server, HTTP server headers); Scrapy uses the
-      # HTTP client and the telnet console is disabled. Remove when Twisted 26.10.0 is released
+      # HTTP client and the telnet console is disabled. Plus one in the twisted.names DNS client
+      # (GHSA-jj36-9pvh-vj5r), which nothing here imports: Scrapy resolves hosts with its
+      # CachingThreadedResolver. Remove all seven when Twisted 26.10.0 final is released
       # (docs/DECISIONS.md #17).
       - run: >-
           uvx pip-audit==2.10.1 --disable-pip --progress-spinner off -r "$RUNNER_TEMP/locked.txt"
@@ -42,6 +44,7 @@ jobs:
           --ignore-vuln GHSA-3476-c5c2-fr73
           --ignore-vuln GHSA-53xc-49m8-p798
           --ignore-vuln GHSA-q7qq-6mhp-9rc4
+          --ignore-vuln GHSA-jj36-9pvh-vj5r
 
   zizmor:
     name: zizmor (GitHub Actions workflows)

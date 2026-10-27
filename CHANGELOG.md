@@ -58,3 +58,8 @@ in `pyproject.toml`).
   robots.txt and allowed 16 concurrent requests per domain.
 - Scraped timestamps are UTC datetimes (`scraped_at`) instead of a local date string in a
   `scrapped-at` column.
+
+### Security
+
+- pip-audit also ignores GHSA-jj36-9pvh-vj5r (Twisted `twisted.names` DNS client, not used here;
+  Scrapy resolves with `CachingThreadedResolver`) until Twisted 26.10.0 final ships.
