@@ -13,6 +13,9 @@ layers, idempotency, contracts and polite crawling visible.
   servers). `make test-fast` skips coverage.
 - `make demo`: live crawl of 5 products per store, then `stats`. `make up` / `make down`: compose.
 - On Windows without make, run the underlying `uv run ...` commands.
+- Diagrams (bash; on Windows run them in WSL): `make d2-install` (pinned D2 v0.9.0, sha256
+  checked), `make diagrams` (render `docs/diagrams/*.d2` to SVG), `make diagrams-check` (render,
+  fail on a diff: the CI `diagrams` job), `make diagrams-watch NAME=<name>` (live preview).
 
 ## Repo map
 
@@ -28,6 +31,9 @@ layers, idempotency, contracts and polite crawling visible.
 - `tests/fixtures/pages/`: redacted real pages + synthetic edge cases; `tests/fixtures/site/`:
   fixture-site templates served by `tests/conftest.py`. See `tests/fixtures/README.md`.
 - `docs/DECISIONS.md`: decisions log. `docs/REFACTOR_PLAN.md`: the design.
+- `docs/diagrams/`: D2 sources (`_style.d2` is the shared style, not rendered) and the rendered
+  SVGs the README shows: architecture, data-flow, user-flows-cli-run, user-flows-compose,
+  data-model.
 
 ## Invariants
 
@@ -53,6 +59,8 @@ layers, idempotency, contracts and polite crawling visible.
 - Timestamps are aware UTC in Python and UTC `TIMESTAMP` columns in Parquet and DuckDB
   (`naive_utc`).
 - The Twisted reactor never starts in the pytest process; real crawls run in a subprocess.
+- Diagrams match the code: change a `.d2` when the flow, a layer, a view or a column changes,
+  then `make diagrams` and commit the SVG. Never edit an SVG by hand; no Mermaid in the repo.
 
 ## Conventions
 
