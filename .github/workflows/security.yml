@@ -34,7 +34,9 @@ jobs:
       # server, conch telnet, words XML stream, IRC server, HTTP server headers); Scrapy uses the
       # HTTP client and the telnet console is disabled. Plus one in the twisted.names DNS client
       # (GHSA-jj36-9pvh-vj5r), which nothing here imports: Scrapy resolves hosts with its
-      # CachingThreadedResolver. Remove all seven when Twisted 26.10.0 final is released
+      # CachingThreadedResolver. And one in the HTTP/2 server (GHSA-vpp8-g58w-m8mp): no server
+      # runs here and the h2 package it needs is not installed. Remove all eight when Twisted
+      # 26.10.0 final is released
       # (docs/DECISIONS.md #17).
       - run: >-
           uvx pip-audit==2.10.1 --disable-pip --progress-spinner off -r "$RUNNER_TEMP/locked.txt"
@@ -45,6 +47,7 @@ jobs:
           --ignore-vuln GHSA-53xc-49m8-p798
           --ignore-vuln GHSA-q7qq-6mhp-9rc4
           --ignore-vuln GHSA-jj36-9pvh-vj5r
+          --ignore-vuln GHSA-vpp8-g58w-m8mp
 
   zizmor:
     name: zizmor (GitHub Actions workflows)
