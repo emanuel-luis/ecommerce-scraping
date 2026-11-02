@@ -1,22 +1,36 @@
-# Weekly update PRs, one per ecosystem: the SHA-pinned actions, uv.lock and the Docker bases.
+# Monthly update PRs, one group per ecosystem for minor and patch: the SHA-pinned actions,
+# uv.lock and the Docker bases. Semver-major version updates are ignored (majors move by hand)
+# and a release waits 7 days before it is proposed. Security updates skip the schedule and the
+# cooldown. .github/workflows/dependabot-auto-merge.yml merges these PRs once CI is green.
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
-    schedule: { interval: weekly }
+    schedule: { interval: monthly }
+    cooldown: { default-days: 7 }
     groups:
-      github-actions: { patterns: ["*"] }
+      github-actions: { patterns: ["*"], update-types: ["minor", "patch"] }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: uv
     directory: /
-    schedule: { interval: weekly }
+    schedule: { interval: monthly }
+    cooldown: { default-days: 7 }
     groups:
-      uv: { patterns: ["*"] }
+      uv: { patterns: ["*"], update-types: ["minor", "patch"] }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: docker
     directory: /
+    schedule: { interval: monthly }
+    cooldown: { default-days: 7 }
+    groups:
+      docker: { patterns: ["*"], update-types: ["minor", "patch"] }
     ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
       # The runtime stays on Python 3.12 (refactor baseline); only patch and digest updates of that tag.
       - dependency-name: "python"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
-    schedule: { interval: weekly }
-    groups:
-      docker: { patterns: ["*"] }
